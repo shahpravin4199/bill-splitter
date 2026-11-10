@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bill Splitter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1B2A41;
+    --paper: #FBFBF8;
+    --text: #1d1d1b;
+    --muted: #6b6b66;
+    --rule: #c9c9c2;
+    --accent: #D6336C;
+    --font: "Courier Prime", "Courier New", ui-monospace, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    min-height: 100vh;
+    background: var(--ink);
+    font-family: var(--font);
+    color: var(--text);
+    display: flex;
+    justify-content: center;
+    padding: 28px 14px 56px;
+  }
+
+  .receipt {
+    width: 100%;
+    max-width: 400px;
+    background: var(--paper);
+    padding: 26px 22px 40px;
+    /* torn paper edge along the bottom */
+    --tooth: 12px;
+    -webkit-mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / var(--tooth) 100%;
+            mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / var(--tooth) 100%;
+    padding-bottom: 48px;
+    height: fit-content;
+  }
+
+  h1 { margin: 0; font-size: 1.6rem; text-align: center; letter-spacing: 0.04em; }
+  .tagline { margin: 4px 0 0; text-align: center; color: var(--muted); font-size: 0.9rem; }
+  hr { border: 0; border-top: 2px dashed var(--rule); margin: 18px 0; }
+
+  .field { margin-bottom: 18px; }
+  label, .label { display: block; font-weight: 700; margin-bottom: 6px; }
+
+  .money {
+    display: flex;
+    align-items: center;
+    border: 2px solid var(--text);
+    border-radius: 6px;
+    background: #fff;
+  }
+  .money select {
+    border: 0;
+    border-right: 2px solid var(--text);
+    background: transparent;
+    font: inherit;
+    font-weight: 700;
+    padding: 12px 8px;
+    border-radius: 4px 0 0 4px;
+  }
+  .money input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    background: transparent;
+    font: inherit;
+    font-size: 1.4rem;
+    padding: 10px 12px;
+    text-align: right;
+  }
+  .money input:focus { outline: none; }
+  .money:focus-within { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+  .tips { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .tips button, .stepper button {
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    border: 2px solid var(--text);
+    background: #fff;
+    color: var(--text);
+    border-radius: 6px;
+    padding: 10px 0;
+  }
+  .tips button[aria-pressed="true"] { background: var(--text); color: var(--paper); }
+  .custom { margin-top: 8px; display: flex; align-items: center; gap: 8px; }
+  .custom input {
+    width: 90px;
+    font: inherit;
+    padding: 8px 10px;
+    border: 2px solid var(--text);
+    border-radius: 6px;
+    text-align: right;
+    background: #fff;
+  }
+
+  .stepper { display: flex; align-items: center; gap: 14px; }
+  .stepper button { width: 48px; height: 48px; font-size: 1.5rem; padding: 0; line-height: 1; }
+  .stepper output { min-width: 3ch; text-align: center; font-size: 1.6rem; font-weight: 700; }
+
+  .check { display: flex; align-items: center; gap: 10px; font-weight: 400; cursor: pointer; }
+  .check input { width: 20px; height: 20px; accent-color: var(--accent); }
+
+  .lines { margin: 0; padding: 0; }
+  .lines div { display: flex; justify-content: space-between; padding: 4px 0; }
+  .lines dt { color: var(--muted); }
+  .lines dd { margin: 0; font-weight: 700; }
+
+  .each {
+    text-align: center;
+    padding: 6px 0 0;
+  }
+  .each .what { font-size: 0.95rem; color: var(--muted); }
+  .each .amount {
+    font-size: clamp(2.2rem, 11vw, 3rem);
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1.1;
+    word-break: break-all;
+  }
+  .each .note { margin-top: 4px; font-size: 0.85rem; color: var(--muted); min-height: 1.2em; }
+
+  button:focus-visible, select:focus-visible, .custom input:focus-visible, .check input:focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 2px;
+  }
+</style>
+</head>
+<body>
+<main class="receipt">
+  <h1>BILL SPLITTER</h1>
+  <p class="tagline">Enter the bill. Everyone pays their share.</p>
+  <hr>
+
+  <div class="field">
+    <label for="bill">Bill total</label>
+    <div class="money">
+      <select id="currency" aria-label="Currency">
+        <option value="Rs ">Rs</option>
+        <option value="$">$</option>
+        <option value="€">€</option>
+        <option value="£">£</option>
+      </select>
+      <input id="bill" type="number" inputmode="decimal" min="0" step="any" placeholder="0.00">
+    </div>
+  </div>
+
+  <div class="field">
+    <span class="label" id="tipLabel">Tip</span>
+    <div class="tips" role="group" aria-labelledby="tipLabel">
+      <button type="button" data-tip="0">0%</button>
+      <button type="button" data-tip="5">5%</button>
+      <button type="button" data-tip="10" aria-pressed="true">10%</button>
+      <button type="button" data-tip="15">15%</button>
+    </div>
+    <div class="custom">
+      <label for="customTip" style="margin:0;font-weight:400">Custom %</label>
+      <input id="customTip" type="number" inputmode="decimal" min="0" step="any" placeholder="e.g. 12">
+    </div>
+  </div>
+
+  <div class="field">
+    <span class="label" id="peopleLabel">People</span>
+    <div class="stepper" role="group" aria-labelledby="peopleLabel">
+      <button type="button" id="minus" aria-label="One fewer person">−</button>
+      <output id="people" aria-live="polite">2</output>
+      <button type="button" id="plus" aria-label="One more person">+</button>
+    </div>
+  </div>
+
+  <label class="check">
+    <input id="roundUp" type="checkbox">
+    Round each share up to a whole number
+  </label>
+
+  <hr>
+
+  <dl class="lines">
+    <div><dt>Bill</dt><dd id="outBill">0.00</dd></div>
+    <div><dt>Tip</dt><dd id="outTip">0.00</dd></div>
+    <div><dt>Total</dt><dd id="outTotal">0.00</dd></div>
+  </dl>
+
+  <hr>
+
+  <div class="each">
+    <div class="what">Each person pays</div>
+    <div class="amount" id="outEach">0.00</div>
+    <div class="note" id="outNote"></div>
+  </div>
+</main>
+
+<script>
+(function () {
+  var tipPct = 10;
+  var people = 2;
+
+  var billEl = document.getElementById("bill");
+  var currencyEl = document.getElementById("currency");
+  var customEl = document.getElementById("customTip");
+  var peopleEl = document.getElementById("people");
+  var roundEl = document.getElementById("roundUp");
+  var tipButtons = document.querySelectorAll(".tips button");
+
+  var out = {
+    bill: document.getElementById("outBill"),
+    tip: document.getElementById("outTip"),
+    total: document.getElementById("outTotal"),
+    each: document.getElementById("outEach"),
+    note: document.getElementById("outNote")
+  };
+
+  function fmt(n) {
+    var sym = currencyEl.value;
+    return sym + n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function num(el) {
+    var v = parseFloat(el.value);
+    return isFinite(v) && v > 0 ? v : 0;
+  }
+
+  function calculate() {
+    var bill = num(billEl);
+    var tip = bill * tipPct / 100;
+    var total = bill + tip;
+    var each = total / people;
+    var note = "";
+
+    if (roundEl.checked && each > 0) {
+      var rounded = Math.ceil(each);
+      var extra = (rounded - each) * people;
+      each = rounded;
+      if (extra > 0.004) note = "Extra " + fmt(extra) + " goes to the tip jar.";
+    }
+
+    out.bill.textContent = fmt(bill);
+    out.tip.textContent = fmt(tip) + " (" + (Math.round(tipPct * 100) / 100) + "%)";
+    out.total.textContent = fmt(total);
+    out.each.textContent = fmt(each);
+    out.note.textContent = note;
+    peopleEl.textContent = people;
+  }
+
+  tipButtons.forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      tipPct = parseFloat(btn.getAttribute("data-tip"));
+      customEl.value = "";
+      tipButtons.forEach(function (b) { b.setAttribute("aria-pressed", b === btn ? "true" : "false"); });
+      calculate();
+    });
+  });
+
+  customEl.addEventListener("input", function () {
+    if (customEl.value === "") return;
+    tipPct = num(customEl);
+    tipButtons.forEach(function (b) { b.setAttribute("aria-pressed", "false"); });
+    calculate();
+  });
+
+  document.getElementById("plus").addEventListener("click", function () {
+    if (people < 99) { people++; calculate(); }
+  });
+  document.getElementById("minus").addEventListener("click", function () {
+    if (people > 1) { people--; calculate(); }
+  });
+
+  billEl.addEventListener("input", calculate);
+  currencyEl.addEventListener("change", calculate);
+  roundEl.addEventListener("change", calculate);
+
+  calculate();
+})();
+</script>
+</body>
+</html>
